@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>我的創意早餐店 - 12宮格穩定版</title>
+    <style>
+        :root { 
+            --p: #ff9f43; --s: #feca57; --bg: #fff9eb; --dark: #576574;
+            --white: #ffffff; --green: #1dd1a1; --red: #ff6b6b; --blue: #48dbfb;
+        }
+        * { box-sizing: border-box; }
+        body { 
+            font-family: 'Segoe UI', 'Microsoft JhengHei', sans-serif; 
+            background: var(--bg); color: var(--dark); margin: 0; 
+            display: flex; justify-content: center; align-items: flex-start;
+            min-height: 100vh; padding: 10px;
+        }
+        #game-box { 
+            width: 100%; max-width: 850px; 
+            background: var(--white); padding: 20px; border-radius: 25px; 
+            box-shadow: 0 8px 0 #f0d5a0; border: 5px solid var(--s);
+            position: relative;
+        }
+        
+        .status { display: flex; justify-content: space-between; margin-bottom: 10px; background: #ffeaa7; padding: 5px 15px; border-radius: 50px; color: #d35400; font-weight: bold; font-size: 0.9rem; }
+        
+        #order-area { 
+            background: var(--dark); color: white; padding: 12px; 
+            border-radius: 15px; margin-bottom: 15px; 
+            display: flex; align-items: center; gap: 12px;
+        }
+        .order-controls { display: flex; flex-direction: column; gap: 5px; }
+        .text-display-box { flex: 1; background: rgba(255,255,255,0.1); padding: 10px; border-radius: 10px; min-height: 50px; display: flex; align-items: center; font-weight: bold; font-size: 1rem; color: #feca57; }
+
+        .game-main-row { display: flex; flex-direction: column; gap: 15px; margin-bottom: 15px; }
+        
+        .plate-container { background: #f8f9fa; border: 2px dashed #dfe4ea; border-radius: 15px; padding: 10px; min-height: 80px; }
+        #plate-items { display: flex; flex-wrap: wrap; gap: 5px; }
+        
+        /* 完美的 6 欄位設計 */
+        .shelf { 
+            display: grid; 
+            grid-template-columns: repeat(6, 1fr); 
+            gap: 10px; 
+        }
+
+        .food-btn { 
+            background: white; border: 2px solid #ecf0f1; border-radius: 12px; 
+            cursor: pointer; box-shadow: 0 4px 0 #dfe4ea; 
+            display: flex; align-items: center; justify-content: center; 
+            aspect-ratio: 1 / 1; transition: 0.1s; padding: 5px;
+        }
+        .food-btn span { font-size: 2.5rem; } 
+        .food-btn:active { transform: translateY(2px); box-shadow: 0 1px 0 #dfe4ea; }
+
+        .plate-item { display: inline-flex; align-items: center; background: var(--white); padding: 5px 10px; border-radius: 50px; border: 2px solid var(--s); font-size: 1.5rem; }
+
+        .action-row { display: flex; gap: 10px; margin-top: 10px; }
+        .btn { border: none; border-radius: 12px; cursor: pointer; font-weight: bold; transition: 0.2s; display: flex; align-items: center; justify-content: center; }
+        .btn-small { padding: 5px 10px; font-size: 0.8rem; }
+        .btn-serve { background: var(--green); color: white; font-size: 1.3rem; box-shadow: 0 5px 0 #10ac84; height: 60px; flex: 3; }
+        .btn-skip { background: #dfe4ea; color: #7f8c8d; flex: 1; }
+        
+        .report-card { background: #fffdf0; border-radius: 15px; padding: 15px; border: 2px solid var(--s); margin-bottom: 15px; max-height: 300px; overflow-y: auto; }
+        .report-item { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px dashed #ddd; }
+        .tag { font-size: 0.75rem; padding: 2px 6px; border-radius: 5px; margin-left: 4px; font-weight: bold; }
+
+        #feedback-overlay { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 3.5rem; font-weight: bold; z-index: 100; pointer-events: none; display: none; text-shadow: 0 0 10px white; }
+        .hidden { display: none !important; }
+    </style>
+</head>
+<body>
+
+<div id="game-box">
+    <div id="feedback-overlay"></div>
+
+    <div id="start-screen">
+        <h1 style="text-align:center; color:var(--p);">🍳 我的創意早餐店</h1>
+        <div style="text-align:center; padding:20px; background:#fff9eb; border:2px dashed var(--s); border-radius:20px; margin-bottom:20px;">
+            店長你好！12種食材已準備就緒！<br>
+            請聽客人的訂單，快速出餐吧。
+        </div>
+        <button class="btn" style="background:var(--p); color:white; width:100%; height:60px; font-size:1.5rem;" onclick="startGame()">開始營業 Start!</button>
+    </div>
+
+    <div id="play-screen" class="hidden">
+        <div class="status">
+            <span>進度: <span id="progress-text">1/7</span></span>
+            <span id="timer-display">時間: 00:00</span>
+        </div>
+
+        <div id="order-area">
+            <button onclick="speakOrder()" style="background:var(--p); border:none; color:white; border-radius:12px; width:70px; height:70px; cursor:pointer; font-size:35px; box-shadow: 0 4px 0 #d35400;">🔊</button>
+            <div class="order-controls">
+                <button class="btn btn-small" style="background:var(--blue); color:white;" onclick="showHint('en')">📖 看英文</button>
+                <button class="btn btn-small" style="background:var(--s); color:#856404;" onclick="showHint('cn')">💡 看中譯</button>
+            </div>
+            <div id="text-display" class="text-display-box">點擊喇叭聽訂單...</div>
+        </div>
+
+        <div class="game-main-row">
+            <div class="plate-container">
+                <div style="font-weight:bold; color:var(--p); font-size:0.85rem; margin-bottom:8px;">🛒 出餐盤：</div>
+                <div id="plate-items"></div>
+            </div>
+            <div class="shelf" id="shelf"></div>
+        </div>
+
+        <div class="action-row">
+            <button class="btn btn-serve" onclick="checkAnswer()">🔔 確認出餐 Serve</button>
+            <button class="btn btn-skip" onclick="goNext(true)">⏩ 跳過</button>
+        </div>
+    </div>
+
+    <div id="result-screen" class="hidden">
+        <h2 style="text-align:center; color:var(--p);">🎊 營業結算報告</h2>
+        <div id="total-time-result" style="text-align:center; font-size:1.2rem; font-weight:bold; color:#d35400; margin-bottom:15px; background:#ffeaa7; padding:10px; border-radius:15px;"></div>
+        <div class="report-card" id="report-content"></div>
+        <button class="btn" style="background:var(--p); color:white; width:100%; height:50px; font-size:1.2rem;" onclick="location.reload()">重新開店</button>
+    </div>
+</div>
+
+<script>
+    // 增加了一題三明治的題目
+    const questions = [
+        { txt: "I want two eggs and one hot milk.", ans: ["Egg", "Egg", "Hot Milk"], chi: "我要兩個蛋和一杯熱牛奶。" },
+        { txt: "Three cakes and one cold coffee.", ans: ["Cake", "Cake", "Cake", "Cold Coffee"], chi: "三個蛋糕和一杯冰咖啡。" },
+        { txt: "Two hamburgers and one sandwich.", ans: ["Hamburger", "Hamburger", "Sandwich"], chi: "兩個漢堡和一個三明治。" },
+        { txt: "Two hamburgers and two juices.", ans: ["Hamburger", "Hamburger", "Juice", "Juice"], chi: "兩個漢堡和兩杯果汁。" },
+        { txt: "One bread, one egg, and one hot coffee.", ans: ["Bread", "Egg", "Hot Coffee"], chi: "一份麵包、一個蛋和一杯熱咖啡。" },
+        { txt: "Three cookies and two cold milks.", ans: ["Cookie", "Cookie", "Cookie", "Cold Milk", "Cold Milk"], chi: "三片餅乾和兩杯冰牛奶。" },
+        { txt: "One apple and one cake.", ans: ["Apple", "Cake"], chi: "一顆蘋果和一個蛋糕。" }
+    ];
+
+    const foodList = [
+        {n:"Egg", e:"🍳"}, {n:"Bread", e:"🍞"}, {n:"Juice", e:"🧃"},
+        {n:"Hot Milk", e:"♨️🥛"}, {n:"Cold Milk", e:"❄️🥛"},
+        {n:"Hot Coffee", e:"♨️☕"}, {n:"Cold Coffee", e:"❄️☕"}, // 統一使用 ❄️
+        {n:"Hamburger", e:"🍔"}, {n:"Cake", e:"🍰"},
+        {n:"Cookie", e:"🍪"}, {n:"Apple", e:"🍎"},
+        {n:"Sandwich", e:"🥪"} // 新增第 12 個食物
+    ];
+
+    let currentIdx = 0, plate = [], history = [], startTime, gameTimer;
+    let currentRetry = 0, usedCN = false, usedEN = false;
+
+    function startGame() {
+        startTime = Date.now();
+        document.getElementById('start-screen').classList.add('hidden');
+        document.getElementById('play-screen').classList.remove('hidden');
+        renderShelf(); loadQuest();
+        gameTimer = setInterval(updateTimer, 1000);
+    }
+
+    function updateTimer() {
+        let sec = Math.floor((Date.now() - startTime) / 1000);
+        document.getElementById('timer-display').innerText = `時間: ${formatTime(sec)}`;
+    }
+
+    function formatTime(sec) {
+        let m = Math.floor(sec/60).toString().padStart(2,'0'), s = (sec%60).toString().padStart(2,'0');
+        return `${m}:${s}`;
+    }
+
+    function renderShelf() {
+        const s = document.getElementById('shelf');
+        s.innerHTML = foodList.map(f => `<button class="food-btn" onclick="add('${f.n}','${f.e}')"><span>${f.e}</span></button>`).join('');
+    }
+
+    function loadQuest() {
+        plate = []; updatePlate();
+        currentRetry = 0; usedCN = false; usedEN = false;
+        document.getElementById('text-display').innerText = "點擊喇叭聽訂單...";
+        document.getElementById('progress-text').innerText = `${currentIdx + 1}/${questions.length}`;
+        speakOrder();
+    }
+
+    function add(n, e) { plate.push({n, e}); updatePlate(); }
+    function remove(i) { plate.splice(i, 1); updatePlate(); }
+    function updatePlate() {
+        const p = document.getElementById('plate-items');
+        p.innerHTML = plate.map((f, i) => `<div class="plate-item">${f.e}<button onclick="remove(${i})" style="border:none; color:red; cursor:pointer; background:none; font-size:1rem; margin-left:5px;">✕</button></div>`).join('');
+    }
+
+    function speakOrder() {
+        window.speechSynthesis.cancel();
+        const msg = new SpeechSynthesisUtterance(questions[currentIdx].txt);
+        msg.lang = 'en-US'; msg.rate = 0.8;
+        window.speechSynthesis.speak(msg);
+    }
+
+    function showHint(type) {
+        const display = document.getElementById('text-display');
+        if(type === 'cn') { display.innerText = questions[currentIdx].chi; usedCN = true; }
+        else { display.innerText = questions[currentIdx].txt; usedEN = true; }
+    }
+
+    function checkAnswer() {
+        const u = plate.map(x => x.n).sort(), a = [...questions[currentIdx].ans].sort();
+        const fb = document.getElementById('feedback-overlay');
+        fb.style.display = "block";
+        if(JSON.stringify(u) === JSON.stringify(a)) {
+            fb.innerText = "✅ 正確！"; fb.style.color = "var(--green)";
+            history.push({ title: questions[currentIdx].txt, retry: currentRetry, hCN: usedCN, hEN: usedEN, status: 'ok' });
+            setTimeout(() => { fb.style.display="none"; goNext(false); }, 1000);
+        } else {
+            fb.innerText = "❌ 錯囉"; fb.style.color = "var(--red)";
+            currentRetry++;
+            setTimeout(() => { fb.style.display="none"; }, 1000);
+        }
+    }
+
+    function goNext(isSkip) {
+        if(isSkip) history.push({ title: questions[currentIdx].txt, retry: 0, hCN: usedCN, hEN: usedEN, status: 'skip' });
+        currentIdx++;
+        if(currentIdx < questions.length) loadQuest();
+        else finishGame();
+    }
+
+    function finishGame() {
+        clearInterval(gameTimer);
+        let finalSec = Math.floor((Date.now() - startTime) / 1000);
+        document.getElementById('play-screen').classList.add('hidden');
+        document.getElementById('result-screen').classList.remove('hidden');
+        document.getElementById('total-time-result').innerText = `🏆 總營業用時: ${formatTime(finalSec)}`;
+        const container = document.getElementById('report-content');
+        container.innerHTML = history.map((h, i) => {
+            let tags = "";
+            if (h.status === 'skip') tags = '<span class="tag" style="background:#eee;">跳過</span>';
+            else {
+                if (h.retry === 0) tags += '<span class="tag" style="background:#dff9fb; color:#0097e6;">一次過 ✨</span>';
+                else tags += `<span class="tag" style="background:#fff3e0; color:#e67e22;">重試 ${h.retry} 次</span>`;
+                if (h.hCN) tags += '<span class="tag" style="background:#feca57; color:#856404;">中💡</span>';
+                if (h.hEN) tags += '<span class="tag" style="background:#48dbfb; color:#0984e3;">英📖</span>';
+            }
+            return `<div class="report-item"><span><b>Q${i+1}.</b> ${h.title}</span><div>${tags}</div></div>`;
+        }).join('');
+    }
+</script>
+</body>
+</html>
